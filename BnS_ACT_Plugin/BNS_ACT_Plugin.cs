@@ -4,11 +4,9 @@
 // Advanced Combat Tracker Plugin for Blade & Soul
 // https://github.com/ravahn/BnS_ACT_Plugin
 // 
-// Copyright © 2016 Ravahn
-// 
 // The MIT License(MIT)
 //
-// Copyright(c) 2016 ravahn
+// Copyright(c) 2016 Ravahn
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,15 +29,13 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
-//using System.Linq;
 using System.Text;
-//using System.Threading.Tasks;
 using System.Threading;
 using System.Windows.Forms;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace BNS_ACT_Plugin
 {
@@ -149,17 +145,17 @@ namespace BNS_ACT_Plugin
 
         public static void Initialize()
         {
-            _thread = new Thread(new ThreadStart(Scan));
             _stopThread = false;
+            _thread = new Thread(new ThreadStart(Scan));
 
-            string folderName = System.IO.Path.Combine(Advanced_Combat_Tracker.ActGlobals.oFormActMain.AppDataFolder.FullName, @"BNSLogs\");
+            string folderName = Path.Combine(Advanced_Combat_Tracker.ActGlobals.oFormActMain.AppDataFolder.FullName, @"BNSLogs\");
 
-            if (!System.IO.Directory.Exists(folderName))
-                System.IO.Directory.CreateDirectory(folderName);
+            if (!Directory.Exists(folderName))
+                Directory.CreateDirectory(folderName);
 
-            _logFileName = System.IO.Path.Combine(folderName, "combatlog_" + DateTime.Now.ToString("yyyy-MM-dd") + ".txt");
+            _logFileName = Path.Combine(folderName, "combatlog_" + DateTime.Now.ToString("yyyy-MM-dd") + ".txt");
 
-            System.IO.File.AppendAllText(_logFileName, null);
+            File.AppendAllText(_logFileName, null);
 
             // update filename in ACT
             Advanced_Combat_Tracker.ActGlobals.oFormActMain.LogFilePath = _logFileName;
@@ -275,7 +271,7 @@ namespace BNS_ACT_Plugin
 
                 }
 
-                System.IO.File.AppendAllText(_logFileName, buffer.ToString());
+                File.AppendAllText(_logFileName, buffer.ToString());
 
                 lastLine = lineCount % 300;
             }
@@ -320,10 +316,9 @@ namespace BNS_ACT_Plugin
         private static Regex regex_yourdebuff = new Regex(@"(?<skill>.*?) (?<critical>(critically hit)|(hit)) (?<target>.*?) ((and inflicted (?<debuff>.*?))|(but (?<debuff2>.*?) was resisted))\.", RegexOptions.Compiled);
         private static Regex regex_evade = new Regex(@"(?<target>.*?) evaded (?<skill>.*?)\.", RegexOptions.Compiled);
         private static Regex regex_yourdefeat = new Regex(@"(?<target>.*?) was defeated by (?<skill>.*?)\.", RegexOptions.Compiled);
-        private static Regex regex_yourincomingdamage1 = new Regex(@"Received (?<damage>\d+) damage from (?<actor>.*?)&apos;s (?<skill>.*?)\.", RegexOptions.Compiled);
-        private static Regex regex_yourincomingdamage2 = new Regex(@"Blocked (?<actor>.*?)&apos;s (?<skill>.*?) but received (?<damage>\d+) damage\.", RegexOptions.Compiled);
-        private static Regex regex_yourincomingdamage3 = new Regex(@"(?<actor>.*?)&apos;s (?<skill>.*?) inflicted (?<damage>\d+) damage((\.)|( and Knockdown\.))", RegexOptions.Compiled);
-        private static Regex regex_dot = new Regex(@"(?<target>.*?) received (?<damage>\d+) damage from (?<skill>.*?)\.", RegexOptions.Compiled);
+        private static Regex regex_yourincomingdamage2 = new Regex(@"(?<actor>.*?)&apos;s (?<skill>.*?) inflicted (?<damage>\d+) damage((\.)|( and Knockdown\.))", RegexOptions.Compiled);
+        private static Regex regex_incomingdamage2 = new Regex(@"(?<target>.*?)?(Blocked|blocked) (?<actor>.*?)&apos;s (?<skill>.*?) but received (?<damage>\d+) damage\.", RegexOptions.Compiled);
+        private static Regex regex_incomingdamage1 = new Regex(@"(?<target>.*?)?( received|Received) (?<damage>\d+) (?<critical>(Critical) )?damage (and (?<HPDrain>\d+) HP drain )?(and (?<FocusDrain>\d+) Focus drain )?(and Knockback )?(and Daze )?from ((?<actor>.*?)&apos;s )?(?<skill>.*?)\.", RegexOptions.Compiled);
 
         public static DateTime ParseLogDateTime(string message)
         {
@@ -413,14 +408,14 @@ namespace BNS_ACT_Plugin
             }
 
 
-            m = regex_yourincomingdamage1.Match(logLine);
-            if (!m.Success)
-                m = regex_yourincomingdamage2.Match(logLine);
-            if (!m.Success)
-                m = regex_yourincomingdamage3.Match(logLine);
+            m = regex_yourincomingdamage2.Match(logLine);
             if (m.Success)
             {
-                if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, m.Groups["actor"].Value, "You"))
+                string target = m.Groups["target"].Success ? m.Groups["target"].Value : "";
+                if (string.IsNullOrWhiteSpace(target))
+                    target = "You";
+
+                if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, m.Groups["actor"].Value, target))
                 {
                     Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
                         (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
@@ -431,7 +426,7 @@ namespace BNS_ACT_Plugin
                         new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value)),
                         timestamp,
                         Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
-                        "You",
+                        target,
                         "");
 
                 }
@@ -439,21 +434,30 @@ namespace BNS_ACT_Plugin
                 return;
             }
 
-            m = regex_dot.Match(logLine);
+            m = regex_incomingdamage1.Match(logLine);
+            if (!m.Success)
+                m = regex_incomingdamage2.Match(logLine);
             if (m.Success)
             {
-                if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, "You", m.Groups["actor"].Value))
+                string target = m.Groups["target"].Success ? m.Groups["target"].Value : "";
+                if (string.IsNullOrWhiteSpace(target))
+                    target = "You";
+                string actor = m.Groups["actor"].Success ? m.Groups["actor"].Value : "";
+                if (string.IsNullOrWhiteSpace(actor))
+                    actor = "Unknown";
+
+                if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, actor, target))
                 {
                     Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
                         (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
                         false,
-                        "DoT",
-                        "You",
+                        "",
+                        actor,
                         m.Groups["skill"].Value,
                         new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value)),
                         timestamp,
                         Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
-                        m.Groups["target"].Value,
+                        target,
                         "");
 
                 }
