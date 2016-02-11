@@ -12,6 +12,8 @@ https://github.com/ravahn/BnS_ACT_Plugin/blob/master/BnS_ACT_Plugin/BNS_ACT_Plug
 
 3) Install the file as a new ACT plugin on the Plugins tab
 
+4) Run BnS and make sure that the default Combat tab exists, and that all combat actions appear there.
+
 ## Limitations / Notes:
 * This is an early alpha - there is a lot of coding and validation needed before it should be considered accurate.
 * Only combat data is parsed for the moment, not chat text.
