@@ -153,7 +153,7 @@ namespace BNS_ACT_Plugin
             if (!Directory.Exists(folderName))
                 Directory.CreateDirectory(folderName);
 
-            _logFileName = Path.Combine(folderName, "combatlog_" + DateTime.Now.ToString("yyyy-MM-dd") + ".txt");
+            _logFileName = Path.Combine(folderName, "combatlog_" + DateTime.Now.ToString("yyyy-MM-dd") + ".log");
 
             File.AppendAllText(_logFileName, null);
 
@@ -312,13 +312,13 @@ namespace BNS_ACT_Plugin
 
     static class LogParse
     {
-        private static Regex regex_yourdamage = new Regex(@"(?<skill>.*?) (?<critical>(critically hit)|(hit)) (?<target>.*?) for (?<damage>\d+) damage(((, draining| and drained) ((?<HPDrain>\d+) HP)?( and )?((?<FocusDrain>\d+) Focus)?))?(, removing (?<skillremove>.*?))?\.", RegexOptions.Compiled);
-        private static Regex regex_yourdebuff = new Regex(@"(?<skill>.*?) (?<critical>(critically hit)|(hit)) (?<target>.*?) ((and inflicted (?<debuff>.*?))|(but (?<debuff2>.*?) was resisted))\.", RegexOptions.Compiled);
+        private static Regex regex_incomingdamage1 = new Regex(@"(?<target>.*?)?( received|Received) (?<damage>\d+(,\d+)*) (?<critical>(Critical) )?damage (and (?<HPDrain>\d+(,\d+)*) HP drain )?(and (?<FocusDrain>\d+) Focus drain )?(and Knockback )?(and Daze )?from ((?<actor>.*?)&apos;s )?(?<skill>.*?)\.", RegexOptions.Compiled);
+        private static Regex regex_incomingdamage2 = new Regex(@"(?<target>.*?)?(Blocked|blocked) (?<actor>.*?)&apos;s (?<skill>.*?) but received ((?<damage>\d+(,\d+)*) damage)?(?<debuff>.*?)?\.", RegexOptions.Compiled);
+        private static Regex regex_incomingdamage3 = new Regex(@"(?<actor>.*?)&apos;s (?<skill>.*?) inflicted (?<damage>\d+(,\d+)*) damage( and Knockdown)?( and Daze)?( and Airborne)?( to (?<target>.*?))?\.", RegexOptions.Compiled);
+        private static Regex regex_yourdamage = new Regex(@"(?<skill>.*?) (?<critical>(critically hit)|(hit)) (?<target>.*?) for (?<damage>\d+(,\d+)*) damage(((, draining| and drained) ((?<HPDrain>\d+(,\d+)*) HP)?( and )?((?<FocusDrain>\d+) Focus)?))?(, removing (?<skillremove>.*?))?\.", RegexOptions.Compiled);
+        private static Regex regex_yourdebuff = new Regex(@"(?<skill>.*?) (?<critical>(critically hit)|(hit)) (?<target>.*?) (and inflicted (?<debuff>.*?))?(but (?<debuff2>.*?) was resisted)?\.", RegexOptions.Compiled);
         private static Regex regex_evade = new Regex(@"(?<target>.*?) evaded (?<skill>.*?)\.", RegexOptions.Compiled);
         private static Regex regex_yourdefeat = new Regex(@"(?<target>.*?) was defeated by (?<skill>.*?)\.", RegexOptions.Compiled);
-        private static Regex regex_yourincomingdamage2 = new Regex(@"(?<actor>.*?)&apos;s (?<skill>.*?) inflicted (?<damage>\d+) damage((\.)|( and Knockdown\.))", RegexOptions.Compiled);
-        private static Regex regex_incomingdamage2 = new Regex(@"(?<target>.*?)?(Blocked|blocked) (?<actor>.*?)&apos;s (?<skill>.*?) but received (?<damage>\d+) damage\.", RegexOptions.Compiled);
-        private static Regex regex_incomingdamage1 = new Regex(@"(?<target>.*?)?( received|Received) (?<damage>\d+) (?<critical>(Critical) )?damage (and (?<HPDrain>\d+) HP drain )?(and (?<FocusDrain>\d+) Focus drain )?(and Knockback )?(and Daze )?from ((?<actor>.*?)&apos;s )?(?<skill>.*?)\.", RegexOptions.Compiled);
 
         public static DateTime ParseLogDateTime(string message)
         {
@@ -346,7 +346,6 @@ namespace BNS_ACT_Plugin
             logInfo.logLine = "[" + timestamp.ToString("HH:mm:ss.fff") + "] " + logLine;
             // timestamp = DateTime.ParseExact(logLine.Substring(1, logLine.IndexOf(']') - 1), "HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
 
-
             Match m;
 
             m = regex_yourdamage.Match(logLine);
@@ -360,7 +359,7 @@ namespace BNS_ACT_Plugin
                         "",
                         "You",
                         m.Groups["skill"].Value,
-                        new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value)),
+                        new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value, System.Globalization.NumberStyles.AllowThousands)),
                         timestamp,
                         Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
                         m.Groups["target"].Value,
@@ -407,42 +406,30 @@ namespace BNS_ACT_Plugin
                 return;
             }
 
-
-            m = regex_yourincomingdamage2.Match(logLine);
-            if (m.Success)
-            {
-                string target = m.Groups["target"].Success ? m.Groups["target"].Value : "";
-                if (string.IsNullOrWhiteSpace(target))
-                    target = "You";
-
-                if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, m.Groups["actor"].Value, target))
-                {
-                    Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
-                        (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
-                        false,
-                        "", // todo: blocked
-                        m.Groups["actor"].Value,
-                        m.Groups["skill"].Value,
-                        new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value)),
-                        timestamp,
-                        Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
-                        target,
-                        "");
-
-                }
-
-                return;
-            }
-
             m = regex_incomingdamage1.Match(logLine);
             if (!m.Success)
                 m = regex_incomingdamage2.Match(logLine);
+            if (!m.Success)
+                m = regex_incomingdamage3.Match(logLine);
             if (m.Success)
             {
                 string target = m.Groups["target"].Success ? m.Groups["target"].Value : "";
+                string actor = m.Groups["actor"].Success ? m.Groups["actor"].Value : "";
+                string skill = m.Groups["skill"].Success ? m.Groups["skill"].Value : "";
+
+                // if skillname is blank, the skillname and actor may be transposed
+                if (string.IsNullOrWhiteSpace(skill))
+                {
+                    if (!string.IsNullOrWhiteSpace(actor))
+                    {
+                        // "Received 1373 damage from Rising Blaze&apos;s ."
+                        skill = actor;
+                    }
+                }
+
                 if (string.IsNullOrWhiteSpace(target))
                     target = "You";
-                string actor = m.Groups["actor"].Success ? m.Groups["actor"].Value : "";
+
                 if (string.IsNullOrWhiteSpace(actor))
                     actor = "Unknown";
 
@@ -453,8 +440,8 @@ namespace BNS_ACT_Plugin
                         false,
                         "",
                         actor,
-                        m.Groups["skill"].Value,
-                        new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value)),
+                        skill,
+                        new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value, System.Globalization.NumberStyles.AllowThousands)),
                         timestamp,
                         Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
                         target,
