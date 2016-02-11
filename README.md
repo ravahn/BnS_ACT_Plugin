@@ -12,8 +12,6 @@ https://github.com/ravahn/BnS_ACT_Plugin/blob/master/BnS_ACT_Plugin/BNS_ACT_Plug
 
 3) Install the file as a new ACT plugin on the Plugins tab
 
-4) Point ACT to the log files in %AppData%\Advanced Combat Tracker\BnSLogs
-
 ## Limitations / Notes:
 * This is an early alpha - the regex matches are not there for many things, and only self-parsing works for now.
 * Only combat data is parsed for the moment
