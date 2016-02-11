@@ -129,6 +129,10 @@ namespace BNS_ACT_Plugin
 
             System.IO.File.AppendAllText(_logFileName, null);
 
+            // update filename in ACT
+            Advanced_Combat_Tracker.ActGlobals.oFormActMain.LogFilePath = _logFileName;
+            Advanced_Combat_Tracker.ActGlobals.oFormActMain.OpenLog(false, false); // GetCurrentZone flag means it will scan for the zone regex in the log file.
+
             _thread.Start();
         }
 
@@ -280,13 +284,14 @@ namespace BNS_ACT_Plugin
 
     static class LogParse
     {
-        private static Regex regex_yourdamage = new Regex(@"(?<skill>.*?) (?<critical>(critically hit)|(hit)) (?<target>.*?) for (?<damage>\d+) damage((\.)|( and drained (?<focus>\d+) Focus\.))", RegexOptions.Compiled);
+        private static Regex regex_yourdamage = new Regex(@"(?<skill>.*?) (?<critical>(critically hit)|(hit)) (?<target>.*?) for (?<damage>\d+) damage(((, draining| and drained) ((?<HPDrain>\d+) HP)?( and )?((?<FocusDrain>\d+) Focus)?))?(, removing (?<skillremove>.*?))?\.", RegexOptions.Compiled);
         private static Regex regex_yourdebuff = new Regex(@"(?<skill>.*?) (?<critical>(critically hit)|(hit)) (?<target>.*?) ((and inflicted (?<debuff>.*?))|(but (?<debuff2>.*?) was resisted))\.", RegexOptions.Compiled);
         private static Regex regex_evade = new Regex(@"(?<target>.*?) evaded (?<skill>.*?)\.", RegexOptions.Compiled);
         private static Regex regex_yourdefeat = new Regex(@"(?<target>.*?) was defeated by (?<skill>.*?)\.", RegexOptions.Compiled);
         private static Regex regex_yourincomingdamage1 = new Regex(@"Received (?<damage>\d+) damage from (?<actor>.*?)&apos;s (?<skill>.*?)\.", RegexOptions.Compiled);
         private static Regex regex_yourincomingdamage2 = new Regex(@"Blocked (?<actor>.*?)&apos;s (?<skill>.*?) but received (?<damage>\d+) damage\.", RegexOptions.Compiled);
         private static Regex regex_yourincomingdamage3 = new Regex(@"(?<actor>.*?)&apos;s (?<skill>.*?) inflicted (?<damage>\d+) damage((\.)|( and Knockdown\.))", RegexOptions.Compiled);
+        private static Regex regex_dot = new Regex(@"(?<target>.*?) received (?<damage>\d+) damage from (?<skill>.*?)\.", RegexOptions.Compiled);
 
         public static DateTime ParseLogDateTime(string message)
         {
@@ -388,7 +393,7 @@ namespace BNS_ACT_Plugin
                     Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
                         (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
                         false,
-                        "Blocked",
+                        "", // todo: blocked
                         m.Groups["actor"].Value,
                         m.Groups["skill"].Value,
                         new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value)),
@@ -402,7 +407,28 @@ namespace BNS_ACT_Plugin
                 return;
             }
 
+            m = regex_dot.Match(logLine);
+            if (m.Success)
+            {
+                if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, "You", m.Groups["actor"].Value))
+                {
+                    Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
+                        (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
+                        false,
+                        "DoT",
+                        "You",
+                        m.Groups["skill"].Value,
+                        new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value)),
+                        timestamp,
+                        Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
+                        m.Groups["target"].Value,
+                        "");
 
+                }
+
+                return;
+            }
+            //
             // for debugging!
             logInfo.logLine = "xxx " + logInfo.logLine;
         }
