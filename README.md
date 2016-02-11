@@ -13,9 +13,9 @@ https://github.com/ravahn/BnS_ACT_Plugin/blob/master/BnS_ACT_Plugin/BNS_ACT_Plug
 3) Install the file as a new ACT plugin on the Plugins tab
 
 ## Limitations / Notes:
-* This is an early alpha - the regex matches are not there for many things, and only self-parsing works for now.
-* Only combat data is parsed for the moment
-* Zone Names and Player Names are not parsed yet.
+* This is an early alpha - there is a lot of coding and validation needed before it should be considered accurate.
+* Only combat data is parsed for the moment, not chat text.
+* Zone Names are not parsed yet.
 
 ## Acknowledgements:
 Thanks to Shaid for finding and decoding the chat log structure
