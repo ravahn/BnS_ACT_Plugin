@@ -124,6 +124,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsFalse(m.Groups["HPDrain"].Success);
             Assert.IsFalse(m.Groups["FocusDrain"].Success);
             Assert.IsFalse(m.Groups["debuff"].Success);
+            Assert.IsFalse(m.Groups["resistdebuff"].Success);
             Assert.IsTrue(m.Groups["actor"].Success && m.Groups["actor"].Value == "PLAYERNAME");
             Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Sundering Sword");
 
@@ -141,6 +142,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsTrue(m.Groups["HPDrain"].Success && m.Groups["HPDrain"].Value == "963");
             Assert.IsFalse(m.Groups["FocusDrain"].Success);
             Assert.IsFalse(m.Groups["debuff"].Success);
+            Assert.IsFalse(m.Groups["resistdebuff"].Success);
             Assert.IsTrue(m.Groups["actor"].Success && m.Groups["actor"].Value == "PLAYERNAME");
             Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Poison Breath");
 
@@ -158,6 +160,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsTrue(m.Groups["FocusDrain"].Success && m.Groups["FocusDrain"].Value == "1");
             Assert.IsFalse(m.Groups["HPDrain"].Success);
             Assert.IsFalse(m.Groups["debuff"].Success);
+            Assert.IsFalse(m.Groups["resistdebuff"].Success);
             Assert.IsTrue(m.Groups["actor"].Success && m.Groups["actor"].Value == "PLAYERNAME");
             Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Blazing Palm");
 
@@ -175,6 +178,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsFalse(m.Groups["FocusDrain"].Success);
             Assert.IsFalse(m.Groups["HPDrain"].Success);
             Assert.IsTrue(m.Groups["debuff"].Success && m.Groups["debuff"].Value == "Knockdown");
+            Assert.IsFalse(m.Groups["resistdebuff"].Success);
             Assert.IsTrue(m.Groups["actor"].Success && m.Groups["actor"].Value == "PLAYERNAME");
             Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Leg Sweep");
         }
@@ -191,11 +195,47 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsTrue(m.Groups["FocusDrain"].Success && m.Groups["FocusDrain"].Value == "1");
             Assert.IsTrue(m.Groups["HPDrain"].Success && m.Groups["HPDrain"].Value == "36");
             Assert.IsFalse(m.Groups["debuff"].Success);
+            Assert.IsFalse(m.Groups["resistdebuff"].Success);
             Assert.IsTrue(m.Groups["actor"].Success && m.Groups["actor"].Value == "PLAYERNAME");
             Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Blazing Palm");
         }
 
-        //
+        [TestMethod]
+        public void Test_regex_incomingdamage1_resist()
+        {
+            string testLine = "Cobalt Widow received 1543 damage from PLAYERNAME&apos;s Strike but resisted Daze.";
+
+            Match m = BNS_ACT_Plugin.LogParse.regex_incomingdamage1.Match(testLine);
+
+            Assert.IsTrue(m.Groups["target"].Success && m.Groups["target"].Value == "Cobalt Widow");
+            Assert.IsTrue(m.Groups["damage"].Success && m.Groups["damage"].Value == "1543");
+            Assert.IsFalse(m.Groups["critical"].Success);
+            Assert.IsFalse(m.Groups["HPDrain"].Success);
+            Assert.IsFalse(m.Groups["FocusDrain"].Success);
+            Assert.IsFalse(m.Groups["debuff"].Success);
+            Assert.IsTrue(m.Groups["resistdebuff"].Success && m.Groups["resistdebuff"].Value == "Daze");
+            Assert.IsTrue(m.Groups["actor"].Success && m.Groups["actor"].Value == "PLAYERNAME");
+            Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Strike");
+
+        }
+        [TestMethod]
+        public void Test_regex_incomingdamage1_resist2()
+        {
+            string testLine = "Scarlet Widow received 1943 Critical damage from PLAYERNAME&apos;s Strike, but resisted Daze effect.";
+
+            Match m = BNS_ACT_Plugin.LogParse.regex_incomingdamage1.Match(testLine);
+
+            Assert.IsTrue(m.Groups["target"].Success && m.Groups["target"].Value == "Scarlet Widow");
+            Assert.IsTrue(m.Groups["damage"].Success && m.Groups["damage"].Value == "1943");
+            Assert.IsTrue(m.Groups["critical"].Success && m.Groups["critical"].Value == "Critical");
+            Assert.IsFalse(m.Groups["HPDrain"].Success);
+            Assert.IsFalse(m.Groups["FocusDrain"].Success);
+            Assert.IsFalse(m.Groups["debuff"].Success);
+            Assert.IsTrue(m.Groups["resistdebuff"].Success && m.Groups["resistdebuff"].Value == "Daze");
+            Assert.IsTrue(m.Groups["actor"].Success && m.Groups["actor"].Value == "PLAYERNAME");
+            Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Strike");
+
+        }
 
         [TestMethod]
         public void Test_regex_incomingdamage2_Blocked()
@@ -286,6 +326,22 @@ namespace BnS_ACT_Plugin.Test
 
             // todo: add test case for target
         }
+        [TestMethod]
+        public void Test_regex_incomingdamage3_damage_target()
+        {
+            string testLine = "Blazing Palm&apos;s Lasting Effects inflicted 109 damage to Sochon Gamyung.";
+
+            Match m = BNS_ACT_Plugin.LogParse.regex_incomingdamage3.Match(testLine);
+
+            Assert.IsTrue(m.Groups["actor"].Success && m.Groups["actor"].Value == "Blazing Palm");
+            Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Lasting Effects");
+            Assert.IsTrue(m.Groups["damage"].Success && m.Groups["damage"].Value == "109");
+            Assert.IsFalse(m.Groups["debuff"].Success);
+            Assert.IsTrue(m.Groups["target"].Success && m.Groups["target"].Value == "Sochon Gamyung");
+
+            // todo: add test case for target
+        }
+        //        //[15:20:48.110]  
 
         [TestMethod]
         public void Test_regex_incomingdamage3_nodamage()
@@ -318,6 +374,23 @@ namespace BnS_ACT_Plugin.Test
 
             // todo: add test case for skillremove
         }
+
+        [TestMethod]
+        public void Test_regex_yourdamage_damage_hpdrain()
+        {
+            string testLine = "Frost Fury hit Junghado for 545 damage and drained 163 HP.";
+
+            Match m = BNS_ACT_Plugin.LogParse.regex_yourdamage.Match(testLine);
+
+            Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Frost Fury");
+            Assert.IsTrue(m.Groups["critical"].Success && m.Groups["critical"].Value == "hit");
+            Assert.IsTrue(m.Groups["target"].Success && m.Groups["target"].Value == "Junghado");
+            Assert.IsTrue(m.Groups["damage"].Success && m.Groups["damage"].Value == "545");
+            Assert.IsTrue(m.Groups["HPDrain"].Success && m.Groups["HPDrain"].Value == "163");
+            Assert.IsFalse(m.Groups["FocusDrain"].Success);
+            Assert.IsFalse(m.Groups["skillremove"].Success);
+        }
+
         [TestMethod]
         public void Test_regex_evade_simple()
         {

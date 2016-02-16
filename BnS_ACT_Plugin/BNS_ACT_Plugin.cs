@@ -476,10 +476,9 @@ namespace BNS_ACT_Plugin
 
     public static class LogParse
     {
-        public static Regex regex_incomingdamage1 = new Regex(@"(?<target>.+?)?( received|Received) (?<damage>\d+(,\d+)*) ((?<critical>Critical) )?damage((,)?( and)? (?<HPDrain>\d+(,\d+)*) HP drain)?((,)?( and)? (?<FocusDrain>\d+) Focus drain)?((,)?( and)? (?<debuff>.+?))? from ((?<actor>.+?)&apos;s )?(?<skill>.+?)\.", RegexOptions.Compiled);
-        //public static Regex regex_incomingdamage1 = new Regex(@"(?<target>.+?)?( received|Received) (?<damage>\d+(,\d+)*) ((?<critical>Critical) )?damage (and (?<HPDrain>\d+(,\d+)*) HP drain )?(and (?<FocusDrain>\d+) Focus drain )?(and (?<debuff>.+?) )?from ((?<actor>.+?)&apos;s )?(?<skill>.+?)\.", RegexOptions.Compiled);
+        public static Regex regex_incomingdamage1 = new Regex(@"(?<target>.+?)?( received|Received) (?<damage>\d+(,\d+)*) ((?<critical>Critical) )?damage((,)?( and)? (?<HPDrain>\d+(,\d+)*) HP drain)?((,)?( and)? (?<FocusDrain>\d+) Focus drain)?((,)?( and)? (?<debuff>.+?))? from ((?<actor>.+?)&apos;s )?(?<skill>.+?)((,)?( but)? resisted (?<resistdebuff>.+?)( effect)?)?\.", RegexOptions.Compiled);
         public static Regex regex_incomingdamage2 = new Regex(@"((?<target>.+?) )?(Blocked|blocked|partially blocked|countered)( (?<actor>.+)&apos;s)? (?<skill>.+?) (but received|receiving)( (?<damage>\d+(,\d+)*) damage)?(( and)? (?<HPDrain>\d+(,\d+)*) HP drain)?( and?)?( (?<debuff>.+?))?\.", RegexOptions.Compiled);
-        public static Regex regex_incomingdamage3 = new Regex(@"(?<actor>.+?)&apos;s (?<skill>.+?) inflicted( (?<damage>\d+(,\d+)*) damage)?( and)?( (?<debuff>.+?))?( to (?<target>.+?))?\.", RegexOptions.Compiled);
+        public static Regex regex_incomingdamage3 = new Regex(@"(?<actor>.+?)&apos;s (?<skill>.+?) inflicted( (?<damage>\d+(,\d+)*) damage)?( and)?( (?<debuff>.+?))*?( to (?<target>.+?))?\.", RegexOptions.Compiled);
         public static Regex regex_yourdamage = new Regex(@"(?<skill>.+?) (?<critical>(critically hit)|(hit)) (?<target>.+?) for (?<damage>\d+(,\d+)*) damage(((, draining| and drained) ((?<HPDrain>\d+(,\d+)*) HP)?( and )?((?<FocusDrain>\d+) Focus)?))?(, removing (?<skillremove>.+?))?\.", RegexOptions.Compiled);
         public static Regex regex_debuff2 = new Regex(@"((?<actor>.+?)&apos;s )?(?<skill>.+?)( (?<critical>(critically hit)|(hit)) (?<target>.+?))? ((and )?inflicted (?<debuff>.+?))?(but (?<debuff2>.+?) was resisted)?\.", RegexOptions.Compiled);
         public static Regex regex_evade = new Regex(@"(?<target>.+?) evaded (?<skill>.+?)\.", RegexOptions.Compiled);
@@ -527,19 +526,37 @@ namespace BNS_ACT_Plugin
                 m = regex_yourdamage.Match(logLine);
                 if (m.Success)
                 {
-                    if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, "You", m.Groups["target"].Value))
+                    string actor = "You";
+                    string target = m.Groups["target"].Success ? DecodeString(m.Groups["target"].Value) : "";
+
+                    if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, actor, target))
                     {
                         Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
                             (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
                             m.Groups["critical"].Value == "critically hit",
                             "",
-                            "You",
-                            m.Groups["skill"].Value,
+                            actor,
+                            DecodeString(m.Groups["skill"].Value),
                             new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value, System.Globalization.NumberStyles.AllowThousands)),
                             timestamp,
                             Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
-                            m.Groups["target"].Value,
+                            target,
                             "");
+
+                        if (m.Groups["HPDrain"].Success)
+                        {
+                            Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
+                                (int)Advanced_Combat_Tracker.SwingTypeEnum.Healing,
+                                false,
+                                "Drain",
+                                actor,
+                                DecodeString(m.Groups["skill"].Value),
+                                new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["HPDrain"].Value, System.Globalization.NumberStyles.AllowThousands)),
+                                timestamp,
+                                Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
+                                target,
+                                "");
+                        }
 
                     }
 
@@ -553,9 +570,9 @@ namespace BNS_ACT_Plugin
                     m = regex_incomingdamage3.Match(logLine);
                 if (m.Success)
                 {
-                    string target = m.Groups["target"].Success ? m.Groups["target"].Value : "";
-                    string actor = m.Groups["actor"].Success ? m.Groups["actor"].Value : "";
-                    string skill = m.Groups["skill"].Success ? m.Groups["skill"].Value : "";
+                    string target = m.Groups["target"].Success ? DecodeString(m.Groups["target"].Value) : "";
+                    string actor = m.Groups["actor"].Success ? DecodeString(m.Groups["actor"].Value) : "";
+                    string skill = m.Groups["skill"].Success ? DecodeString(m.Groups["skill"].Value) : "";
 
                     // if skillname is blank, the skillname and actor may be transposed
                     if (string.IsNullOrWhiteSpace(skill))
@@ -590,6 +607,20 @@ namespace BNS_ACT_Plugin
                             target,
                             "");
 
+                        if (m.Groups["HPDrain"].Success)
+                        {
+                            Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
+                                (int)Advanced_Combat_Tracker.SwingTypeEnum.Healing,
+                                false,
+                                "Drain",
+                                actor,
+                                skill,
+                                new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["HPDrain"].Value, System.Globalization.NumberStyles.AllowThousands)),
+                                timestamp,
+                                Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
+                                actor,
+                                "");
+                        }
                     }
 
                     return;
@@ -598,7 +629,7 @@ namespace BNS_ACT_Plugin
                 m = regex_heal.Match(logLine);
                 if (m.Success)
                 {
-                    string target = m.Groups["target"].Success ? m.Groups["target"].Value : "";
+                    string target = m.Groups["target"].Success ? DecodeString(m.Groups["target"].Value) : "";
                     if (string.IsNullOrWhiteSpace(target))
                         target = "You";
                     string actor = "Unknown";
@@ -614,7 +645,7 @@ namespace BNS_ACT_Plugin
                             false,
                             "",
                             actor,
-                            m.Groups["skill"].Value,
+                            DecodeString(m.Groups["skill"].Value),
                             new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["HPAmount"].Value, System.Globalization.NumberStyles.AllowThousands)),
                             timestamp,
                             Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
@@ -657,18 +688,23 @@ namespace BNS_ACT_Plugin
                 m = regex_defeat.Match(logLine);
                 if (m.Success)
                 {
-                    if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, "You", m.Groups["target"].Value))
+                    string target = m.Groups["target"].Success ? DecodeString(m.Groups["target"].Value) : "";
+                    string actor = m.Groups["actor"].Success ? DecodeString(m.Groups["actor"].Value) : "";
+                    if (string.IsNullOrWhiteSpace(actor))
+                        actor = "Unknown";
+
+                    if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, actor, target))
                     {
                         Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
                             (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
                             false,
                             "",
-                            "You",
-                            m.Groups["skill"].Value,
+                            actor,
+                            DecodeString(m.Groups["skill"].Value),
                             Advanced_Combat_Tracker.Dnum.Death,
                             timestamp,
                             Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
-                            m.Groups["target"].Value,
+                            target,
                             "");
 
                     }
@@ -683,7 +719,15 @@ namespace BNS_ACT_Plugin
 
             // For debugging
             if (!string.IsNullOrWhiteSpace(logLine))
-                BNS_ACT_Plugin.LogParserMessage("Unhandled: " + logInfo.logLine);
+                BNS_ACT_Plugin.LogParserMessage("Unhandled Line: " + logInfo.logLine);
+        }
+
+        private static string DecodeString(string data)
+        {
+            string ret = data.Replace("&apos;", "'")
+                .Replace("&amp;", "&");
+
+            return ret;
         }
     }
 
