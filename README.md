@@ -22,4 +22,4 @@ https://github.com/ravahn/BnS_ACT_Plugin/blob/master/BnS_ACT_Plugin/BNS_ACT_Plug
 ## Acknowledgements:
 Thanks to Shaid for finding and decoding the chat log structure
 
-Thanks to Aditu, author of Advanced Combat Tracker, for creating such a versitile program.
+Thanks to Aditu, author of Advanced Combat Tracker, for creating such a versatile program.
