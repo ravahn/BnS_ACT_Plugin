@@ -573,7 +573,7 @@ namespace BNS_ACT_Plugin
                     string target = m.Groups["target"].Success ? DecodeString(m.Groups["target"].Value) : "";
                     string actor = m.Groups["actor"].Success ? DecodeString(m.Groups["actor"].Value) : "";
                     string skill = m.Groups["skill"].Success ? DecodeString(m.Groups["skill"].Value) : "";
-
+                    
                     // if skillname is blank, the skillname and actor may be transposed
                     if (string.IsNullOrWhiteSpace(skill))
                     {
@@ -597,7 +597,7 @@ namespace BNS_ACT_Plugin
                     {
                         Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
                             (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
-                            false,
+                            m.Groups["critical"].Value == "Critical",
                             "",
                             actor,
                             skill,
