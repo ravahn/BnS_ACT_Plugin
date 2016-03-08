@@ -176,6 +176,9 @@ namespace BNS_ACT_Plugin
                 // Set primary parser delegate for processing data
                 Advanced_Combat_Tracker.ActGlobals.oFormActMain.BeforeLogLineRead += LogParse.BeforeLogLineRead;
 
+                // Hard-code zone name
+                Advanced_Combat_Tracker.ActGlobals.oFormActMain.ChangeZone("Blade and Soul");
+
                 // Initialize logging thread
                 LogWriter.Initialize();
 
@@ -715,7 +718,11 @@ namespace BNS_ACT_Plugin
             }
             catch (Exception ex)
             {
-                BNS_ACT_Plugin.LogParserMessage("Error [LogParse.BeforeLogLineRead] " + ex.ToString().Replace(Environment.NewLine, " ") + " " + logInfo.logLine);
+                string exception = ex.ToString().Replace(Environment.NewLine, " ");
+                if (ex.InnerException != null)
+                    exception += " " + ex.InnerException.ToString().Replace(Environment.NewLine, " ");
+
+                BNS_ACT_Plugin.LogParserMessage("Error [LogParse.BeforeLogLineRead] " + exception + " " + logInfo.logLine);
             }
 
             // For debugging
