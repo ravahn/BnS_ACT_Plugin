@@ -5,10 +5,10 @@ using System.Text.RegularExpressions;
 namespace BnS_ACT_Plugin.Test
 {
     [TestClass]
-    public class LogParse
+    public class LogParse_Regex
     {
         [TestMethod]
-        public void Test_regex_yourdamage_simple()
+        public void LogParse_Regex_yourdamage_simple()
         {
             string testLine = "Blazing Palm hit Blackram Landing Soldier for 413 damage.";
 
@@ -23,7 +23,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsFalse(m.Groups["skillremove"].Success);
         }
         [TestMethod]
-        public void Test_regex_yourdamage_critical()
+        public void LogParse_Regex_yourdamage_critical()
         {
             string testLine = "Blazing Palm critically hit Blackram Landing Soldier for 736 damage.";
 
@@ -38,7 +38,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsFalse(m.Groups["skillremove"].Success);
         }
         [TestMethod]
-        public void Test_regex_yourdamage_drain()
+        public void LogParse_Regex_yourdamage_drain()
         {
             string testLine = "Dragonwhorl hit Sajifi for 283 damage, draining 283 HP and 1 Focus.";
 
@@ -55,7 +55,7 @@ namespace BnS_ACT_Plugin.Test
 
 
         [TestMethod]
-        public void Test_regex_debuff2_simple()
+        public void LogParse_Regex_debuff2_simple()
         {
             string testLine = "Blazing Palm hit Blackram Landing Soldier and inflicted Ember.";
 
@@ -70,7 +70,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_debuff2_resisted()
+        public void LogParse_Regex_debuff2_resisted()
         {
             string testLine = "PLAYERNAME&apos;s Dragonfrost hit Mercenary Enforcer but Chill was resisted.";
 
@@ -85,7 +85,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_debuff2_nodamage_inflicted()
+        public void LogParse_Regex_debuff2_nodamage_inflicted()
         {
             string testLine = "PLAYER NAME&apos;s Leading Palm inflicted Bleed.";
 
@@ -100,7 +100,7 @@ namespace BnS_ACT_Plugin.Test
         }
         //
         [TestMethod]
-        public void Test_regex_debuff_simple()
+        public void LogParse_Regex_debuff_simple()
         {
             string testLine = "Assault Unit Mercenary receives Chill.";
 
@@ -112,7 +112,7 @@ namespace BnS_ACT_Plugin.Test
 
 
         [TestMethod]
-        public void Test_regex_incomingdamage1_simple()
+        public void LogParse_Regex_incomingdamage1_simple()
         {
             string testLine = "Assault Unit Mercenary received 1384 damage from PLAYERNAME&apos;s Sundering Sword.";
 
@@ -130,7 +130,7 @@ namespace BnS_ACT_Plugin.Test
 
         }
         [TestMethod]
-        public void Test_regex_incomingdamage1_HPDrain_Crit()
+        public void LogParse_Regex_incomingdamage1_HPDrain_Crit()
         {
             string testLine = "Deputy Mercenary received 1889 Critical damage and 963 HP drain from PLAYERNAME&apos;s Poison Breath.";
 
@@ -148,7 +148,7 @@ namespace BnS_ACT_Plugin.Test
 
         }
         [TestMethod]
-        public void Test_regex_incomingdamage1_FocusDrain()
+        public void LogParse_Regex_incomingdamage1_FocusDrain()
         {
             string testLine = "Ferocious Attack Bear received 1130 damage and 1 Focus drain from PLAYERNAME&apos;s Blazing Palm.";
 
@@ -166,7 +166,7 @@ namespace BnS_ACT_Plugin.Test
 
         }
         [TestMethod]
-        public void Test_regex_incomingdamage1_damage_knockdown()
+        public void LogParse_Regex_incomingdamage1_damage_knockdown()
         {
             string testLine = "Assassin Guard received 287 damage and Knockdown from PLAYERNAME&apos;s Leg Sweep.";
 
@@ -183,7 +183,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Leg Sweep");
         }
         [TestMethod]
-        public void Test_regex_incomingdamage1_damage_complex()
+        public void LogParse_Regex_incomingdamage1_damage_complex()
         {
             string testLine = "Sac Spider received 346 damage, 36 HP drain, and 1 Focus drain from PLAYERNAME&apos;s Blazing Palm. ";
 
@@ -201,7 +201,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_incomingdamage1_resist()
+        public void LogParse_Regex_incomingdamage1_resist()
         {
             string testLine = "Cobalt Widow received 1543 damage from PLAYERNAME&apos;s Strike but resisted Daze.";
 
@@ -219,7 +219,7 @@ namespace BnS_ACT_Plugin.Test
 
         }
         [TestMethod]
-        public void Test_regex_incomingdamage1_resist2()
+        public void LogParse_Regex_incomingdamage1_resist2()
         {
             string testLine = "Scarlet Widow received 1943 Critical damage from PLAYERNAME&apos;s Strike, but resisted Daze effect.";
 
@@ -238,7 +238,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_incomingdamage2_Blocked()
+        public void LogParse_Regex_incomingdamage2_Blocked()
         {
             string testLine = "Blocked Mercenary Enforcer&apos;s Shuriken but received 247 damage.";
 
@@ -254,7 +254,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_incomingdamage2_targetdebuff()
+        public void LogParse_Regex_incomingdamage2_targetdebuff()
         {
             string testLine = "PLAYERNAME blocked Mercenary Enforcer&apos;s Shadow Slash but received Shadow.";
 
@@ -269,7 +269,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_incomingdamage2_targetdebuff_knockback()
+        public void LogParse_Regex_incomingdamage2_targetdebuff_knockback()
         {
             string testLine = "Blocked Sajifi&apos;s Elite Beastmaster&apos;s Searing Strike but received 326 damage and Knockback.";
 
@@ -283,7 +283,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsTrue(m.Groups["debuff"].Success && m.Groups["debuff"].Value == "Knockback");
         }
         [TestMethod]
-        public void Test_regex_incomingdamage2_counter()
+        public void LogParse_Regex_incomingdamage2_counter()
         {
             string testLine = "PLAYER NAME countered Cobalt Widow&apos;s Frost Fury but received 216 damage.";
 
@@ -297,7 +297,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsFalse(m.Groups["debuff"].Success);
         }
         [TestMethod]
-        public void Test_regex_incomingdamage2_receiving()
+        public void LogParse_Regex_incomingdamage2_receiving()
         {
             string testLine = "Engineer Corps Defense Captain partially blocked Breeze receiving 155 damage and 31 HP drain.";
 
@@ -312,7 +312,7 @@ namespace BnS_ACT_Plugin.Test
         }
         //
         [TestMethod]
-        public void Test_regex_incomingdamage3_damage_knockback()
+        public void LogParse_Regex_incomingdamage3_damage_knockback()
         {
             string testLine = "Sochon Gamyung&apos;s Fury inflicted 3563 damage and Knockback.";
 
@@ -327,7 +327,7 @@ namespace BnS_ACT_Plugin.Test
             // todo: add test case for target
         }
         [TestMethod]
-        public void Test_regex_incomingdamage3_damage_target()
+        public void LogParse_Regex_incomingdamage3_damage_target()
         {
             string testLine = "Blazing Palm&apos;s Lasting Effects inflicted 109 damage to Sochon Gamyung.";
 
@@ -344,7 +344,7 @@ namespace BnS_ACT_Plugin.Test
         //        //[15:20:48.110]  
 
         [TestMethod]
-        public void Test_regex_incomingdamage3_nodamage()
+        public void LogParse_Regex_incomingdamage3_nodamage()
         {
             string testLine = "Sochon Gamyung&apos;s Stone Shield inflicted Stun.";
 
@@ -358,7 +358,7 @@ namespace BnS_ACT_Plugin.Test
         }
         //
         [TestMethod]
-        public void Test_regex_yourdamage_complex()
+        public void LogParse_Regex_yourdamage_complex()
         {
             string testLine = "Frost Fury critically hit Silver Deva for 986 damage, draining 591 HP and 1 Focus.";
 
@@ -376,7 +376,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_yourdamage_damage_hpdrain()
+        public void LogParse_Regex_yourdamage_damage_hpdrain()
         {
             string testLine = "Frost Fury hit Junghado for 545 damage and drained 163 HP.";
 
@@ -392,7 +392,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_evade_simple()
+        public void LogParse_Regex_evade_simple()
         {
             string testLine = "PLAYER NAME evaded Scorching Arrow of the Hills.";
 
@@ -402,7 +402,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Scorching Arrow of the Hills");
         }
         [TestMethod]
-        public void Test_regex_defeat_skill()
+        public void LogParse_Regex_defeat_skill()
         {
             string testLine = "Chuluun the Strong was defeated by PLAYER NAME&apos;s Sunder.";
 
@@ -414,7 +414,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_defeat_neardeath()
+        public void LogParse_Regex_defeat_neardeath()
         {
             string testLine = "You were rendered near death by Stalker Jiangshi&apos;s Furious Flurry.";
 
@@ -425,7 +425,7 @@ namespace BnS_ACT_Plugin.Test
             Assert.IsTrue(m.Groups["skill"].Success && m.Groups["skill"].Value == "Furious Flurry");
         }
         [TestMethod]
-        public void Test_regex_defeat_killed()
+        public void LogParse_Regex_defeat_killed()
         {
             string testLine = "You were killed by Ape King Ogong&apos;s Roar.";
 
@@ -437,7 +437,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_heal_simple()
+        public void LogParse_Regex_heal_simple()
         {
             string testLine = "PLAYERNAME recovered 813 HP with Doom &apos;n&apos; Bloom.";
 
@@ -450,7 +450,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_heal_you()
+        public void LogParse_Regex_heal_you()
         {
             string testLine = "Recovered 1125 HP from Doom &apos;n&apos; Bloom.";
 
@@ -463,7 +463,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_heal_focus()
+        public void LogParse_Regex_heal_focus()
         {
             string testLine = "PLAYER NAME recovered 2 Focus from Grab.";
 
@@ -476,7 +476,7 @@ namespace BnS_ACT_Plugin.Test
         }
 
         [TestMethod]
-        public void Test_regex_buff_simple()
+        public void LogParse_Regex_buff_simple()
         {
             string testLine = "Critical Bonus is now active.";
 

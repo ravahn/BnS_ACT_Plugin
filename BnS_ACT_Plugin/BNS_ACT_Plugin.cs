@@ -36,6 +36,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.IO;
+using Advanced_Combat_Tracker;
 
 namespace BNS_ACT_Plugin
 {
@@ -159,6 +160,8 @@ namespace BNS_ACT_Plugin
                 // Update the listing of columns inside ACT.
                 UpdateACTTables();
 
+                // Configure ACT Wrapper
+                LogParse.Initialize(new ACTWrapper());
 
                 pluginScreenSpace.Controls.Add(this);   // Add this UserControl to the tab ACT provides
                 this.Dock = DockStyle.Fill; // Expand the UserControl to fill the tab's client space
@@ -243,7 +246,8 @@ namespace BNS_ACT_Plugin
 
         public static void LogParserMessage(string message)
         {
-            lstMessages.Invoke(new Action(() => lstMessages.Items.Add(message)));
+            if (lstMessages != null)
+                lstMessages.Invoke(new Action(() => lstMessages.Items.Add(message)));
         }
 
         private void cmdClearMessages_Click(object sender, EventArgs e)
@@ -395,7 +399,8 @@ namespace BNS_ACT_Plugin
                     if (lineCount < lastLine)
                         lineCount += lastLine;
 
-                    StringBuilder buffer = new StringBuilder(20 * (lineCount - lastLine));
+                    // assume average line length is 50 characters, preallocate stringbuilder
+                    StringBuilder buffer = new StringBuilder(50 * (lineCount - lastLine));
 
                     for (int i = lastLine + 1; i <= lineCount; i++)
                     {
@@ -415,6 +420,9 @@ namespace BNS_ACT_Plugin
                         if (byteCount == 0)
                             continue;
 
+                        // position 0x70 is chat code
+                        int chatCode = BitConverter.ToInt32(header, 0x70);
+
                         // read bytes
                         byte[] text = new byte[byteCount * 2];
 
@@ -422,9 +430,9 @@ namespace BNS_ACT_Plugin
 
                         //for (int j = 0; j < 0x80; j+=4)
                         //buffer.Append(BitConverter.ToUInt32(header, j).ToString("X8") + "|");
-                        buffer.Append(DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) + " ");
+                        buffer.Append(DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) + "|");
+                        buffer.Append(chatCode.ToString("X2") + "|");
                         buffer.AppendLine(System.Text.UnicodeEncoding.Unicode.GetString(text, 0, byteCount * 2));
-
                     }
 
                     File.AppendAllText(_logFileName, buffer.ToString());
@@ -435,7 +443,7 @@ namespace BNS_ACT_Plugin
                 {
                     File.AppendAllText(_logFileName,
                         DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) + 
-                        " Error [BNS_Log.Scan] " + ex.ToString().Replace(Environment.NewLine, " "));
+                        "|Error [BNS_Log.Scan] " + ex.ToString().Replace(Environment.NewLine, " "));
 
                     // do not exit scan thread, but pause so that the errors dont pile up.
                     System.Threading.Thread.Sleep(1000);
@@ -490,17 +498,35 @@ namespace BNS_ACT_Plugin
         public static Regex regex_heal = new Regex(@"(?<target>.+?)?( recovered|Recovered) ((?<HPAmount>\d+(,\d+)*) HP)?((?<FocusAmount>\d+) Focus)? (with|from) (?<skill>.+?)\.");
         public static Regex regex_buff = new Regex(@"(?<skill>.+?) is now active\.", RegexOptions.Compiled);
 
+        private static IACTWrapper _ACT = null;
+
+        public static void Initialize(IACTWrapper ACT)
+        {
+            _ACT = ACT;
+        }
+
         public static DateTime ParseLogDateTime(string message)
         {
             DateTime ret = DateTime.MinValue;
 
+            if (_ACT == null)
+                throw new ApplicationException("ACT Wrapper not initialized.");
+
             try
             {
-                if (message == null || message.IndexOf(' ') < 5)
+                if (message == null)
                     return ret;
+                if (message.IndexOf('|') > 0)
+                {
+                    if (!DateTime.TryParse(message.Substring(0, message.IndexOf('|')), out ret))
+                        return DateTime.MinValue;
 
-                if (!DateTime.TryParse(message.Substring(0, message.IndexOf(' ')), out ret))
-                    return DateTime.MinValue;
+                }
+                else if (message.IndexOf(' ') > 5)
+                {
+                    if (!DateTime.TryParse(message.Substring(0, message.IndexOf(' ')), out ret))
+                        return DateTime.MinValue;
+                }
             }
             catch (Exception ex)
             {
@@ -513,16 +539,33 @@ namespace BNS_ACT_Plugin
         {
             string logLine = logInfo.logLine;
 
+            if (_ACT == null)
+                throw new ApplicationException("ACT Wrapper not initialized.");
+
             try
             {
                 // parse datetime
                 DateTime timestamp = ParseLogDateTime(logLine);
-                if (logLine.IndexOf(' ') >= 5)
+                int chatLogType = 0;
+                if (logLine.IndexOf('|') > 5)
+                {
+                    logLine = logLine.Substring(logLine.IndexOf('|')+1);
+                    if (logLine.IndexOf('|') > 0)
+                    {
+                        chatLogType = Convert.ToInt32(logLine.Substring(0, logLine.IndexOf('|')), 16);
+                        logLine = logLine.Substring(logLine.IndexOf('|')+1);
+                    }
+                }
+                else if (logLine.IndexOf(' ') > 5)
                     logLine = logLine.Substring(logLine.IndexOf(' '));
 
                 // reformat logline
                 logInfo.logLine = "[" + timestamp.ToString("HH:mm:ss.fff") + "] " + logLine;
                 // timestamp = DateTime.ParseExact(logLine.Substring(1, logLine.IndexOf(']') - 1), "HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
+
+                // Exclude certain chat codes
+                if (chatLogType == 0x0c) // 0x0c = NPC talking, not parsed.
+                    return;
 
                 Match m;
 
@@ -531,33 +574,35 @@ namespace BNS_ACT_Plugin
                 {
                     string actor = "You";
                     string target = m.Groups["target"].Success ? DecodeString(m.Groups["target"].Value) : "";
+                    string damage = (m.Groups["damage"].Value ?? "").Replace(",", "");
+                    string hpdrain = (m.Groups["HPDrain"].Value ?? "").Replace(",", "");
 
-                    if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, actor, target))
+                    if (_ACT.SetEncounter(timestamp, actor, target))
                     {
-                        Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
+                        _ACT.AddCombatAction(
                             (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
                             m.Groups["critical"].Value == "critically hit",
                             "",
                             actor,
                             DecodeString(m.Groups["skill"].Value),
-                            new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value, System.Globalization.NumberStyles.AllowThousands)),
+                            new Advanced_Combat_Tracker.Dnum(int.Parse(damage)),
                             timestamp,
-                            Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
+                            _ACT.GlobalTimeSorter,
                             target,
                             "");
 
                         if (m.Groups["HPDrain"].Success)
                         {
-                            Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
+                            _ACT.AddCombatAction(
                                 (int)Advanced_Combat_Tracker.SwingTypeEnum.Healing,
                                 false,
                                 "Drain",
                                 actor,
                                 DecodeString(m.Groups["skill"].Value),
-                                new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["HPDrain"].Value, System.Globalization.NumberStyles.AllowThousands)),
+                                new Advanced_Combat_Tracker.Dnum(int.Parse(hpdrain)),
                                 timestamp,
-                                Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
-                                target,
+                                _ACT.GlobalTimeSorter,
+                                actor,
                                 "");
                         }
 
@@ -576,7 +621,9 @@ namespace BNS_ACT_Plugin
                     string target = m.Groups["target"].Success ? DecodeString(m.Groups["target"].Value) : "";
                     string actor = m.Groups["actor"].Success ? DecodeString(m.Groups["actor"].Value) : "";
                     string skill = m.Groups["skill"].Success ? DecodeString(m.Groups["skill"].Value) : "";
-                    
+                    string damage = (m.Groups["damage"].Value ?? "").Replace(",", "");
+                    string hpdrain = (m.Groups["HPDrain"].Value ?? "").Replace(",", "");
+
                     // if skillname is blank, the skillname and actor may be transposed
                     if (string.IsNullOrWhiteSpace(skill))
                     {
@@ -591,36 +638,36 @@ namespace BNS_ACT_Plugin
                         target = "You";
 
                     if (string.IsNullOrWhiteSpace(actor))
-                        actor = "Unknown";
+                        actor = "You";
 
                     // todo: in the future, if damage is missing, still parse the buff portion
                     if (!m.Groups["damage"].Success)
                         return;
-                    if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, actor, target))
+                    if (_ACT.SetEncounter(timestamp, actor, target))
                     {
-                        Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
+                        _ACT.AddCombatAction(
                             (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
                             m.Groups["critical"].Value == "Critical",
                             "",
                             actor,
                             skill,
-                            new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["damage"].Value, System.Globalization.NumberStyles.AllowThousands)),
+                            new Advanced_Combat_Tracker.Dnum(int.Parse(damage)),
                             timestamp,
-                            Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
+                            _ACT.GlobalTimeSorter,
                             target,
                             "");
 
                         if (m.Groups["HPDrain"].Success)
                         {
-                            Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
+                            _ACT.AddCombatAction(
                                 (int)Advanced_Combat_Tracker.SwingTypeEnum.Healing,
                                 false,
                                 "Drain",
                                 actor,
                                 skill,
-                                new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["HPDrain"].Value, System.Globalization.NumberStyles.AllowThousands)),
+                                new Advanced_Combat_Tracker.Dnum(int.Parse(hpdrain)),
                                 timestamp,
-                                Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
+                                _ACT.GlobalTimeSorter,
                                 actor,
                                 "");
                         }
@@ -641,17 +688,19 @@ namespace BNS_ACT_Plugin
                     if (!m.Groups["HPAmount"].Success)
                         return;
 
-                    if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, actor, target))
+                    string hpamount= (m.Groups["HPAmount"].Value ?? "").Replace(",", "");
+
+                    if (_ACT.SetEncounter(timestamp, actor, target))
                     {
-                        Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
+                        _ACT.AddCombatAction(
                             (int)Advanced_Combat_Tracker.SwingTypeEnum.Healing,
                             false,
                             "",
                             actor,
                             DecodeString(m.Groups["skill"].Value),
-                            new Advanced_Combat_Tracker.Dnum(int.Parse(m.Groups["HPAmount"].Value, System.Globalization.NumberStyles.AllowThousands)),
+                            new Advanced_Combat_Tracker.Dnum(int.Parse(hpamount)),
                             timestamp,
-                            Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
+                            _ACT.GlobalTimeSorter,
                             target,
                             "");
 
@@ -696,9 +745,9 @@ namespace BNS_ACT_Plugin
                     if (string.IsNullOrWhiteSpace(actor))
                         actor = "Unknown";
 
-                    if (Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(timestamp, actor, target))
+                    if (_ACT.SetEncounter(timestamp, actor, target))
                     {
-                        Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(
+                        _ACT.AddCombatAction(
                             (int)Advanced_Combat_Tracker.SwingTypeEnum.NonMelee,
                             false,
                             "",
@@ -706,7 +755,7 @@ namespace BNS_ACT_Plugin
                             DecodeString(m.Groups["skill"].Value),
                             Advanced_Combat_Tracker.Dnum.Death,
                             timestamp,
-                            Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter,
+                            _ACT.GlobalTimeSorter,
                             target,
                             "");
 
@@ -740,5 +789,41 @@ namespace BNS_ACT_Plugin
 
     #endregion
 
+    #region Advanced Combat Tracker abstraction
+ 
+    public interface IACTWrapper
+    {
+        bool SetEncounter(DateTime Time, string Attacker, string Victim);
+        void AddCombatAction(int SwingType, bool Critical, string Special, string Attacker, string theAttackType, Advanced_Combat_Tracker.Dnum Damage, DateTime Time, int TimeSorter, string Victim, string theDamageType);
+        int GlobalTimeSorter { get; set; }
+    }
+
+    public class ACTWrapper : IACTWrapper
+    {
+        public int GlobalTimeSorter
+        {
+            get
+            {
+                return Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter;
+            }
+
+            set
+            {
+                Advanced_Combat_Tracker.ActGlobals.oFormActMain.GlobalTimeSorter = value;
+            }
+        }
+
+        public void AddCombatAction(int SwingType, bool Critical, string Special, string Attacker, string theAttackType, Dnum Damage, DateTime Time, int TimeSorter, string Victim, string theDamageType)
+        {
+            Advanced_Combat_Tracker.ActGlobals.oFormActMain.AddCombatAction(SwingType, Critical, Special, Attacker, theAttackType, Damage, Time, TimeSorter, Victim, theDamageType);
+        }
+
+        public bool SetEncounter(DateTime Time, string Attacker, string Victim)
+        {
+            return Advanced_Combat_Tracker.ActGlobals.oFormActMain.SetEncounter(Time, Attacker, Victim);
+        }
+    }
+
+    #endregion 
 
 }
