@@ -7,7 +7,8 @@ Warning: This software operates by connecting to the game's memory and reading t
 
 1) Download and unzip the BNS_ACT_Plugin zip file from the most recent release:
 https://github.com/ravahn/BnS_ACT_Plugin/releases
-Alternately, you can also download the source code file fromhere and use that instead: 
+
+  Alternately, you can also download the source code file fromhere and use that instead: 
 https://github.com/ravahn/BnS_ACT_Plugin/blob/master/BnS_ACT_Plugin/BNS_ACT_Plugin.cs
 
 2) Run ACT as an administrator - this is required to access BnS's game memory
