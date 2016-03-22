@@ -1,6 +1,8 @@
 # Blade & Soul ACT plugin
 This is a beta version of an Advanced Combat Tracker plugin for the MMORPG Blade and Soul.  
 
+### NOTE: This project is no longer actively maintained.  Please contact me at Ravahn (at) hotmail.com if you are capable and interested in maintaining it.
+
 Warning: This software operates by connecting to the game's memory and reading the combat log data.  This action is likely not permitted by the terms of service.  It is unknown at this time whether there is a risk of losing account access from using this software, so please use caution when discussing it in-game, and discontinue use if informed that it is not permitted.
 
 ## Installation steps:
