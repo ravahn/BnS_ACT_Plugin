@@ -7,12 +7,13 @@ Warning: This software operates by connecting to the game's memory and reading t
 
 ## Installation steps:
 
-1) Download the source code file from here and save it in a folder 
-https://github.com/ravahn/BnS_ACT_Plugin/blob/master/BnS_ACT_Plugin/BNS_ACT_Plugin.cs
+1) Download the source code file and save it in a folder.  The file is located  here: 
+
+https://raw.githubusercontent.com/ravahn/BnS_ACT_Plugin/master/BnS_ACT_Plugin/BNS_ACT_Plugin.cs
 
 2) Run ACT as an administrator - this is required to access BnS's game memory
 
-3) Go to the Plugins tab and click the Browse button.  Locate the .cs file and click OK.  Then, click the Add/Enable Plugin button.
+3) Go to the Plugins tab and click the Browse button.  Locate the downloaded file and click OK.  Then, click the Add/Enable Plugin button.
 
 4) Run BnS and make sure that the default Combat tab exists, and that all combat text appears there.
 
