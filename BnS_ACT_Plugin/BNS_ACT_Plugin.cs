@@ -463,21 +463,21 @@ namespace BNS_ACT_Plugin
                 throw new ApplicationException("ReadProcessMemory returned incorrect byte count.  Expected: [" + Length.ToString() + "].  Actual: [" + bytesRead.ToString() + "].");
         }
 
-        private static Int32 ReadInt32(IntPtr ProcessHandle, IntPtr Offset)
+        private static UInt32 ReadUInt32(IntPtr ProcessHandle, IntPtr Offset)
         {
-            const int dataSize = sizeof(Int32);
+            const int dataSize = sizeof(UInt32);
             byte[] buffer = new byte[dataSize];
             IntPtr bytesRead = IntPtr.Zero;
 
             if (!ReadProcessMemory(ProcessHandle, Offset, buffer, new IntPtr(dataSize), ref bytesRead))
                 return 0;
 
-            return BitConverter.ToInt32(buffer, 0);
+            return BitConverter.ToUInt32(buffer, 0);
         }
 
         private static IntPtr ReadIntPtr(IntPtr ProcessHandle, IntPtr Offset)
         {
-            return new IntPtr(ReadInt32(ProcessHandle, Offset));
+            return new IntPtr(ReadUInt32(ProcessHandle, Offset));
         }
 
     }
