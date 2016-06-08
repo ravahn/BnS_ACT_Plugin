@@ -335,7 +335,7 @@ namespace BNS_ACT_Plugin
             }
         }
 
-        private const Int32 chatlogOffset = 0x00D9D138;
+        private const Int32 chatlogOffset = 0x00DD0224;
 
         private static void Scan()
         {
@@ -371,7 +371,7 @@ namespace BNS_ACT_Plugin
                         // cache chatlog pointer tree
                         chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(baseAddress, chatlogOffset));
                         chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, 0x34));
-                        chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, 0x514));
+                        chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, 0x518));
                         chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, 0x4));
 
                         lastPointerUpdate = DateTime.Now;
@@ -379,8 +379,8 @@ namespace BNS_ACT_Plugin
                     if (process == null || baseAddress == IntPtr.Zero || chatlogPointer == IntPtr.Zero)
                         continue;
 
-                    //read in the # of lines - offset 0x9600
-                    int lineCount = ReadInt32(process.Handle, IntPtr.Add(chatlogPointer, 0x9600));
+                    // read in the # of lines - offset 0x9F60
+                    int lineCount = (int) ReadUInt32(process.Handle, IntPtr.Add(chatlogPointer, 0x9F60));
 
                     if (lineCount > 300)
                         throw new ApplicationException("line count too high: [" + lineCount.ToString() + "].");
@@ -404,35 +404,19 @@ namespace BNS_ACT_Plugin
 
                     for (int i = lastLine + 1; i <= lineCount; i++)
                     {
-                        IntPtr lineHeaderPointer = IntPtr.Add(chatlogPointer, 4 + 0x80 * (i % 300));
+                        // pointer to 'chat log line' structure which has std::string at offset 0x0
+                        IntPtr linePointer = IntPtr.Add(chatlogPointer, 0x88 * (i % 300));
 
-                        byte[] header = new byte[0x80];
+                        string chatLine = ReadStlString(process.Handle, linePointer);
 
-                        ReadBuffer(process.Handle, lineHeaderPointer, ref header, 0x80);
-
-                        // first 4 bytes is a pointer
-                        IntPtr linePointer = new IntPtr(BitConverter.ToUInt32(header, 0));
-
-                        // # of bytes in the line is 4 bytes after that, int16
-                        Int16 byteCount = header[0x10];
-
-                        // Skip empty lines
-                        if (byteCount == 0)
-                            continue;
-
-                        // position 0x70 is chat code
-                        int chatCode = BitConverter.ToInt32(header, 0x70);
-
-                        // read bytes
-                        byte[] text = new byte[byteCount * 2];
-
-                        ReadBuffer(process.Handle, linePointer, ref text, (int)(byteCount * 2));
+                        // offset 0x74 is chat code
+                        uint chatCode = ReadUInt32(process.Handle, IntPtr.Add(linePointer, 0x74));
 
                         //for (int j = 0; j < 0x80; j+=4)
                         //buffer.Append(BitConverter.ToUInt32(header, j).ToString("X8") + "|");
                         buffer.Append(DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) + "|");
                         buffer.Append(chatCode.ToString("X2") + "|");
-                        buffer.AppendLine(System.Text.UnicodeEncoding.Unicode.GetString(text, 0, byteCount * 2));
+                        buffer.AppendLine(chatLine);
                     }
 
                     File.AppendAllText(_logFileName, buffer.ToString());
@@ -478,6 +462,34 @@ namespace BNS_ACT_Plugin
         private static IntPtr ReadIntPtr(IntPtr ProcessHandle, IntPtr Offset)
         {
             return new IntPtr(ReadUInt32(ProcessHandle, Offset));
+        }
+
+        // reads data from std::string structure
+        // {
+        //     int32 unk;          // +0x0
+        //     union               // +0x4
+        //     {
+        //         uint32 dataPtr; // if capacity > 7
+        //         char data[4*4]; // if capacity <= 7
+        //     }
+        //     uint32 size;        // +0x14
+        //     uint32 capacity;    // +0x18
+        // }
+        private static string ReadStlString(IntPtr ProcessHandle, IntPtr Offset)
+        {
+            UInt32 size = ReadUInt32(ProcessHandle, IntPtr.Add(Offset, 0x14));
+            UInt32 capacity = ReadUInt32(ProcessHandle, IntPtr.Add(Offset, 0x18));
+            byte[] buffer = new byte[2 * size];
+
+            if (capacity <= 7)
+                ReadBuffer(ProcessHandle, IntPtr.Add(Offset, 0x4), ref buffer, buffer.Length);
+            else
+            {
+                IntPtr dataPtr = ReadIntPtr(ProcessHandle, IntPtr.Add(Offset, 0x4));
+                ReadBuffer(ProcessHandle, dataPtr, ref buffer, buffer.Length);
+            }
+
+            return Encoding.Unicode.GetString(buffer, 0, buffer.Length);
         }
 
     }
