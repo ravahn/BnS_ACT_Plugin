@@ -335,7 +335,7 @@ namespace BNS_ACT_Plugin
             }
         }
 
-        private const Int32 chatlogOffset = 0x00EAF980;
+        private const Int32 chatlogOffset = 0x00EB1A40;
 
         private static void Scan()
         {
