@@ -3,7 +3,7 @@
 // BnS_ACT_Plugin.cs
 // Advanced Combat Tracker Plugin for Blade & Soul
 // https://github.com/ravahn/BnS_ACT_Plugin
-// 
+//
 // The MIT License(MIT)
 //
 // Copyright(c) 2016 Ravahn
@@ -26,7 +26,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ========================================================================
-#endregion
+#endregion License
 
 using System;
 using System.Text;
@@ -44,12 +44,12 @@ namespace BNS_ACT_Plugin
     public class BNS_ACT_Plugin : UserControl, Advanced_Combat_Tracker.IActPluginV1
     {
         #region Designer Created Code (Avoid editing)
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -62,8 +62,8 @@ namespace BNS_ACT_Plugin
             base.Dispose(disposing);
         }
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -73,27 +73,27 @@ namespace BNS_ACT_Plugin
             this.cmdClearMessages = new System.Windows.Forms.Button();
             this.cmdCopyProblematic = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(11, 12);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(88, 13);
             this.label1.TabIndex = 82;
             this.label1.Text = "Parser Messages";
-            // 
+            //
             // lstMessages
-            // 
+            //
             lstMessages.FormattingEnabled = true;
             lstMessages.Location = new System.Drawing.Point(14, 41);
             lstMessages.Name = "lstMessages";
             lstMessages.ScrollAlwaysVisible = true;
             lstMessages.Size = new System.Drawing.Size(700, 264);
             lstMessages.TabIndex = 81;
-            // 
+            //
             // cmdClearMessages
-            // 
+            //
             this.cmdClearMessages.Location = new System.Drawing.Point(88, 311);
             this.cmdClearMessages.Name = "cmdClearMessages";
             this.cmdClearMessages.Size = new System.Drawing.Size(106, 26);
@@ -101,9 +101,9 @@ namespace BNS_ACT_Plugin
             this.cmdClearMessages.Text = "Clear";
             this.cmdClearMessages.UseVisualStyleBackColor = true;
             this.cmdClearMessages.Click += new System.EventHandler(this.cmdClearMessages_Click);
-            // 
+            //
             // cmdCopyProblematic
-            // 
+            //
             this.cmdCopyProblematic.Location = new System.Drawing.Point(478, 311);
             this.cmdCopyProblematic.Name = "cmdCopyProblematic";
             this.cmdCopyProblematic.Size = new System.Drawing.Size(118, 26);
@@ -111,9 +111,9 @@ namespace BNS_ACT_Plugin
             this.cmdCopyProblematic.Text = "Copy to Clipboard";
             this.cmdCopyProblematic.UseVisualStyleBackColor = true;
             this.cmdCopyProblematic.Click += new System.EventHandler(this.cmdCopyProblematic_Click);
-            // 
+            //
             // UserControl1
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.cmdCopyProblematic);
@@ -132,7 +132,7 @@ namespace BNS_ACT_Plugin
         private System.Windows.Forms.Button cmdClearMessages;
         private System.Windows.Forms.Button cmdCopyProblematic;
 
-        #endregion
+        #endregion Designer Created Code (Avoid editing)
 
         public BNS_ACT_Plugin()
         {
@@ -173,7 +173,7 @@ namespace BNS_ACT_Plugin
                 // Default Timestamp length, but this can be overridden in parser code.
                 Advanced_Combat_Tracker.ActGlobals.oFormActMain.TimeStampLen = DateTime.Now.ToString("HH:mm:ss.fff").Length + 1;
 
-                // Set Date time format parsing. 
+                // Set Date time format parsing.
                 Advanced_Combat_Tracker.ActGlobals.oFormActMain.GetDateTimeFromLog = new Advanced_Combat_Tracker.FormActMain.DateTimeLogParser(LogParse.ParseLogDateTime);
 
                 // Set primary parser delegate for processing data
@@ -265,7 +265,7 @@ namespace BNS_ACT_Plugin
                 System.Windows.Forms.Clipboard.SetText(sb.ToString());
         }
     }
-    #endregion
+    #endregion ACT Plugin Code
 
     #region Memory Scanning code
     public static class LogWriter
@@ -347,7 +347,6 @@ namespace BNS_ACT_Plugin
 
             int lastLine = -1;
 
-
             while (!_stopThread)
             {
                 System.Threading.Thread.Sleep(10);
@@ -426,7 +425,7 @@ namespace BNS_ACT_Plugin
                 catch (Exception ex)
                 {
                     File.AppendAllText(_logFileName,
-                        DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) + 
+                        DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) +
                         "|Error [BNS_Log.Scan] " + ex.ToString().Replace(Environment.NewLine, " "));
 
                     // do not exit scan thread, but pause so that the errors dont pile up.
@@ -493,7 +492,7 @@ namespace BNS_ACT_Plugin
         }
 
     }
-    #endregion
+    #endregion Memory Scanning code
 
     #region Parser Code
 
@@ -799,10 +798,10 @@ namespace BNS_ACT_Plugin
         }
     }
 
-    #endregion
+    #endregion Parser Code
 
     #region Advanced Combat Tracker abstraction
- 
+
     public interface IACTWrapper
     {
         bool SetEncounter(DateTime Time, string Attacker, string Victim);
@@ -836,6 +835,6 @@ namespace BNS_ACT_Plugin
         }
     }
 
-    #endregion 
+    #endregion Advanced Combat Tracker abstraction
 
 }
