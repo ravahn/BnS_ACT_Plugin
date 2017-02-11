@@ -3,7 +3,7 @@
 // BnS_ACT_Plugin.cs
 // Advanced Combat Tracker Plugin for Blade & Soul
 // https://github.com/ravahn/BnS_ACT_Plugin
-// 
+//
 // The MIT License(MIT)
 //
 // Copyright(c) 2016 Ravahn
@@ -26,9 +26,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 // ========================================================================
-#endregion
+#endregion License
 
 using System;
+using System.ComponentModel;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -44,12 +45,12 @@ namespace BNS_ACT_Plugin
     public class BNS_ACT_Plugin : UserControl, Advanced_Combat_Tracker.IActPluginV1
     {
         #region Designer Created Code (Avoid editing)
-        /// <summary> 
+        /// <summary>
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
+        /// <summary>
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
@@ -62,8 +63,8 @@ namespace BNS_ACT_Plugin
             base.Dispose(disposing);
         }
 
-        /// <summary> 
-        /// Required method for Designer support - do not modify 
+        /// <summary>
+        /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent()
@@ -73,27 +74,27 @@ namespace BNS_ACT_Plugin
             this.cmdClearMessages = new System.Windows.Forms.Button();
             this.cmdCopyProblematic = new System.Windows.Forms.Button();
             this.SuspendLayout();
-            // 
+            //
             // label1
-            // 
+            //
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(11, 12);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(88, 13);
             this.label1.TabIndex = 82;
             this.label1.Text = "Parser Messages";
-            // 
+            //
             // lstMessages
-            // 
+            //
             lstMessages.FormattingEnabled = true;
             lstMessages.Location = new System.Drawing.Point(14, 41);
             lstMessages.Name = "lstMessages";
             lstMessages.ScrollAlwaysVisible = true;
             lstMessages.Size = new System.Drawing.Size(700, 264);
             lstMessages.TabIndex = 81;
-            // 
+            //
             // cmdClearMessages
-            // 
+            //
             this.cmdClearMessages.Location = new System.Drawing.Point(88, 311);
             this.cmdClearMessages.Name = "cmdClearMessages";
             this.cmdClearMessages.Size = new System.Drawing.Size(106, 26);
@@ -101,9 +102,9 @@ namespace BNS_ACT_Plugin
             this.cmdClearMessages.Text = "Clear";
             this.cmdClearMessages.UseVisualStyleBackColor = true;
             this.cmdClearMessages.Click += new System.EventHandler(this.cmdClearMessages_Click);
-            // 
+            //
             // cmdCopyProblematic
-            // 
+            //
             this.cmdCopyProblematic.Location = new System.Drawing.Point(478, 311);
             this.cmdCopyProblematic.Name = "cmdCopyProblematic";
             this.cmdCopyProblematic.Size = new System.Drawing.Size(118, 26);
@@ -111,9 +112,9 @@ namespace BNS_ACT_Plugin
             this.cmdCopyProblematic.Text = "Copy to Clipboard";
             this.cmdCopyProblematic.UseVisualStyleBackColor = true;
             this.cmdCopyProblematic.Click += new System.EventHandler(this.cmdCopyProblematic_Click);
-            // 
+            //
             // UserControl1
-            // 
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.cmdCopyProblematic);
@@ -132,7 +133,7 @@ namespace BNS_ACT_Plugin
         private System.Windows.Forms.Button cmdClearMessages;
         private System.Windows.Forms.Button cmdCopyProblematic;
 
-        #endregion
+        #endregion Designer Created Code (Avoid editing)
 
         public BNS_ACT_Plugin()
         {
@@ -173,7 +174,7 @@ namespace BNS_ACT_Plugin
                 // Default Timestamp length, but this can be overridden in parser code.
                 Advanced_Combat_Tracker.ActGlobals.oFormActMain.TimeStampLen = DateTime.Now.ToString("HH:mm:ss.fff").Length + 1;
 
-                // Set Date time format parsing. 
+                // Set Date time format parsing.
                 Advanced_Combat_Tracker.ActGlobals.oFormActMain.GetDateTimeFromLog = new Advanced_Combat_Tracker.FormActMain.DateTimeLogParser(LogParse.ParseLogDateTime);
 
                 // Set primary parser delegate for processing data
@@ -265,9 +266,31 @@ namespace BNS_ACT_Plugin
                 System.Windows.Forms.Clipboard.SetText(sb.ToString());
         }
     }
-    #endregion
+    #endregion ACT Plugin Code
 
     #region Memory Scanning code
+
+    // source: http://stackoverflow.com/a/33206186/6022799
+    internal static class NativeMethods
+    {
+        // see https://msdn.microsoft.com/en-us/library/windows/desktop/ms684139%28v=vs.85%29.aspx
+        public static bool Is64Bit(Process process)
+        {
+            if (Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE") == "x86")
+                return false;
+
+            bool isWow64;
+            if (!IsWow64Process(process.Handle, out isWow64))
+                throw new Win32Exception();
+
+            return !isWow64;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWow64Process([In] IntPtr process, [Out] out bool wow64Process);
+    }
+
     public static class LogWriter
     {
         [DllImport("kernel32.dll")]
@@ -277,6 +300,19 @@ namespace BNS_ACT_Plugin
         private static bool _stopThread = false;
 
         private static string _logFileName = "";
+
+        // default to pointer size of current process if detection fails
+        private static bool _is64Bit = IntPtr.Size == 8;
+
+        private static Int32 chatlogOffset
+        {
+            get { return _is64Bit ? chatlogOffset64 : chatlogOffset32; }
+        }
+
+        private static int clientPtrSize
+        {
+            get { return _is64Bit ? 8 : 4; }
+        }
 
         public static void Initialize()
         {
@@ -335,7 +371,8 @@ namespace BNS_ACT_Plugin
             }
         }
 
-        private const Int32 chatlogOffset = 0x00EE29FC;
+        private const Int32 chatlogOffset32 = 0x00EE09FC;
+        private const Int32 chatlogOffset64 = 0x01540460;
 
         private static void Scan()
         {
@@ -347,7 +384,6 @@ namespace BNS_ACT_Plugin
 
             int lastLine = -1;
 
-
             while (!_stopThread)
             {
                 System.Threading.Thread.Sleep(10);
@@ -358,7 +394,18 @@ namespace BNS_ACT_Plugin
                     {
                         Process[] processList = Process.GetProcessesByName("Client");
                         if (processList != null && processList.Length > 0)
+                        {
                             process = processList[0];
+                            try
+                            {
+                                _is64Bit = NativeMethods.Is64Bit(process);
+                            }
+                            catch (Win32Exception ex)
+                            {
+                                BNS_ACT_Plugin.LogParserMessage("Error [BNS_Log.Scan] failed to detect client CPU architecture: " +
+                                    ex.ToString().Replace(Environment.NewLine, " "));
+                            }
+                        }
                         else
                             continue;
 
@@ -370,17 +417,18 @@ namespace BNS_ACT_Plugin
 
                         // cache chatlog pointer tree
                         chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(baseAddress, chatlogOffset));
-                        chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, 0x50));
-                        chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, 0x528));
-                        chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, 0x4));
+                        chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, clientPtrSize * 0x14));
+                        chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, clientPtrSize * 0x28 + 0x488));
+                        chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, clientPtrSize * 0x1));
 
                         lastPointerUpdate = DateTime.Now;
                     }
+
                     if (process == null || baseAddress == IntPtr.Zero || chatlogPointer == IntPtr.Zero)
                         continue;
 
-                    // read in the # of lines - offset 0x9F60
-                    int lineCount = (int) ReadUInt32(process.Handle, IntPtr.Add(chatlogPointer, 0x9F60));
+                    // read in the # of lines
+                    int lineCount = (int) ReadUInt32(process.Handle, IntPtr.Add(chatlogPointer, clientPtrSize * 0xE10 + 0x6720));
 
                     if (lineCount > 300)
                         throw new ApplicationException("line count too high: [" + lineCount.ToString() + "].");
@@ -405,12 +453,12 @@ namespace BNS_ACT_Plugin
                     for (int i = lastLine + 1; i <= lineCount; i++)
                     {
                         // pointer to 'chat log line' structure which has std::string at offset 0x0
-                        IntPtr linePointer = IntPtr.Add(chatlogPointer, 0x88 * (i % 300));
+                        IntPtr linePointer = IntPtr.Add(chatlogPointer, (clientPtrSize * 0xC + 0x58) * (i % 300));
 
                         string chatLine = ReadStlString(process.Handle, linePointer);
 
                         // offset 0x74 is chat code
-                        uint chatCode = ReadUInt32(process.Handle, IntPtr.Add(linePointer, 0x74));
+                        uint chatCode = ReadUInt32(process.Handle, IntPtr.Add(linePointer, clientPtrSize * 0xC + 0x44));
 
                         //for (int j = 0; j < 0x80; j+=4)
                         //buffer.Append(BitConverter.ToUInt32(header, j).ToString("X8") + "|");
@@ -426,7 +474,7 @@ namespace BNS_ACT_Plugin
                 catch (Exception ex)
                 {
                     File.AppendAllText(_logFileName,
-                        DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) + 
+                        DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture) +
                         "|Error [BNS_Log.Scan] " + ex.ToString().Replace(Environment.NewLine, " "));
 
                     // do not exit scan thread, but pause so that the errors dont pile up.
@@ -459,33 +507,46 @@ namespace BNS_ACT_Plugin
             return BitConverter.ToUInt32(buffer, 0);
         }
 
+        private static UInt64 ReadUInt64(IntPtr ProcessHandle, IntPtr Offset)
+        {
+            const int dataSize = sizeof(UInt64);
+            byte[] buffer = new byte[dataSize];
+            IntPtr bytesRead = IntPtr.Zero;
+
+            if (!ReadProcessMemory(ProcessHandle, Offset, buffer, new IntPtr(dataSize), ref bytesRead))
+                return 0;
+
+            return BitConverter.ToUInt64(buffer, 0);
+        }
+
         private static IntPtr ReadIntPtr(IntPtr ProcessHandle, IntPtr Offset)
         {
-            return new IntPtr(ReadUInt32(ProcessHandle, Offset));
+            return new IntPtr(_is64Bit ? (Int64)ReadUInt64(ProcessHandle, Offset) : ReadUInt32(ProcessHandle, Offset));
         }
 
         // reads data from std::string structure
-        // {
-        //     int32 unk;          // +0x0
-        //     union               // +0x4
+        // {                       // 32bit | 64bit
+        //     void* unk;          // +0x0  | +0x0
+        //     union               // +0x4  | +0x8
         //     {
-        //         uint32 dataPtr; // if capacity > 7
+        //         void* dataPtr;  // if capacity > 7
         //         char data[4*4]; // if capacity <= 7
         //     }
-        //     uint32 size;        // +0x14
-        //     uint32 capacity;    // +0x18
+        //     void* size;         // +0x14  | +0x18
+        //     void* capacity;     // +0x18  | +0x20
         // }
         private static string ReadStlString(IntPtr ProcessHandle, IntPtr Offset)
         {
-            UInt32 size = ReadUInt32(ProcessHandle, IntPtr.Add(Offset, 0x14));
-            UInt32 capacity = ReadUInt32(ProcessHandle, IntPtr.Add(Offset, 0x18));
+            // we should read size and capacity as 64 bit integers for 64 bit client, but they will never be that long
+            UInt32 size = ReadUInt32(ProcessHandle, IntPtr.Add(Offset, clientPtrSize * 0x1 + 0x10));
+            UInt32 capacity = ReadUInt32(ProcessHandle, IntPtr.Add(Offset, clientPtrSize * 0x2 + 0x10));
             byte[] buffer = new byte[2 * size];
 
             if (capacity <= 7)
-                ReadBuffer(ProcessHandle, IntPtr.Add(Offset, 0x4), ref buffer, buffer.Length);
+                ReadBuffer(ProcessHandle, IntPtr.Add(Offset, clientPtrSize * 0x1), ref buffer, buffer.Length);
             else
             {
-                IntPtr dataPtr = ReadIntPtr(ProcessHandle, IntPtr.Add(Offset, 0x4));
+                IntPtr dataPtr = ReadIntPtr(ProcessHandle, IntPtr.Add(Offset, clientPtrSize * 0x1));
                 ReadBuffer(ProcessHandle, dataPtr, ref buffer, buffer.Length);
             }
 
@@ -493,7 +554,7 @@ namespace BNS_ACT_Plugin
         }
 
     }
-    #endregion
+    #endregion Memory Scanning code
 
     #region Parser Code
 
@@ -799,10 +860,10 @@ namespace BNS_ACT_Plugin
         }
     }
 
-    #endregion
+    #endregion Parser Code
 
     #region Advanced Combat Tracker abstraction
- 
+
     public interface IACTWrapper
     {
         bool SetEncounter(DateTime Time, string Attacker, string Victim);
@@ -836,6 +897,6 @@ namespace BNS_ACT_Plugin
         }
     }
 
-    #endregion 
+    #endregion Advanced Combat Tracker abstraction
 
 }
