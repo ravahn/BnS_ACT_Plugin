@@ -371,8 +371,8 @@ namespace BNS_ACT_Plugin
             }
         }
 
-        private const Int32 chatlogOffset32 = 0x00EE1B1C;
-        private const Int32 chatlogOffset64 = 0x01545660;
+        private const Int32 chatlogOffset32 = 0x00FA52F0;
+        private const Int32 chatlogOffset64 = 0x01673C98;
 
         private static void Scan()
         {
@@ -418,7 +418,7 @@ namespace BNS_ACT_Plugin
                         // cache chatlog pointer tree
                         chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(baseAddress, chatlogOffset));
                         chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, clientPtrSize * 0x14));
-                        chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, clientPtrSize * 0x28 + 0x488));
+                        chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, clientPtrSize * 0x34 + 0x488));
                         chatlogPointer = ReadIntPtr(process.Handle, IntPtr.Add(chatlogPointer, clientPtrSize * 0x1));
 
                         lastPointerUpdate = DateTime.Now;
